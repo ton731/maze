@@ -9,22 +9,21 @@ interface MazeProps {
   size: number;
 }
 
+interface WallData {
+  position: [number, number, number];
+  args: [number, number, number];
+  color: string;
+  key: string;
+}
+
 export const Maze: React.FC<MazeProps> = ({ size }) => {
   const { isPlaying, updateGameTime } = useGameStore();
 
-  // 生成迷宮
-  const maze = useMemo(() => generateMaze(size, size), [size]);
-
-  // 更新遊戲時間
-  useFrame(() => {
-    if (isPlaying) {
-      updateGameTime();
-    }
-  });
-
-  // 渲染牆壁
-  const renderWalls = () => {
-    const walls: React.ReactNode[] = [];
+  // 生成迷宮和牆壁數據（包含固定顏色）
+  const { maze, walls, floors } = useMemo(() => {
+    const maze = generateMaze(size, size);
+    const walls: WallData[] = [];
+    const floors: { position: [number, number, number]; key: string }[] = [];
     const wallHeight = 2;
     const wallThickness = 0.1;
 
@@ -36,83 +35,86 @@ export const Maze: React.FC<MazeProps> = ({ size }) => {
 
         // 北牆
         if (cell.walls.north) {
-          walls.push(
-            <Box
-              key={`north-${x}-${y}`}
-              position={[cellX, wallHeight / 2, cellZ - 0.5]}
-              args={[1, wallHeight, wallThickness]}
-            >
-              <meshStandardMaterial color={getRandomCyberpunkColor()} />
-            </Box>
-          );
+          walls.push({
+            position: [cellX, wallHeight / 2, cellZ - 0.5],
+            args: [1, wallHeight, wallThickness],
+            color: getRandomCyberpunkColor(),
+            key: `north-${x}-${y}`
+          });
         }
 
         // 南牆
         if (cell.walls.south) {
-          walls.push(
-            <Box
-              key={`south-${x}-${y}`}
-              position={[cellX, wallHeight / 2, cellZ + 0.5]}
-              args={[1, wallHeight, wallThickness]}
-            >
-              <meshStandardMaterial color={getRandomCyberpunkColor()} />
-            </Box>
-          );
+          walls.push({
+            position: [cellX, wallHeight / 2, cellZ + 0.5],
+            args: [1, wallHeight, wallThickness],
+            color: getRandomCyberpunkColor(),
+            key: `south-${x}-${y}`
+          });
         }
 
         // 東牆
         if (cell.walls.east) {
-          walls.push(
-            <Box
-              key={`east-${x}-${y}`}
-              position={[cellX + 0.5, wallHeight / 2, cellZ]}
-              args={[wallThickness, wallHeight, 1]}
-            >
-              <meshStandardMaterial color={getRandomCyberpunkColor()} />
-            </Box>
-          );
+          walls.push({
+            position: [cellX + 0.5, wallHeight / 2, cellZ],
+            args: [wallThickness, wallHeight, 1],
+            color: getRandomCyberpunkColor(),
+            key: `east-${x}-${y}`
+          });
         }
 
         // 西牆
         if (cell.walls.west) {
-          walls.push(
-            <Box
-              key={`west-${x}-${y}`}
-              position={[cellX - 0.5, wallHeight / 2, cellZ]}
-              args={[wallThickness, wallHeight, 1]}
-            >
-              <meshStandardMaterial color={getRandomCyberpunkColor()} />
-            </Box>
-          );
+          walls.push({
+            position: [cellX - 0.5, wallHeight / 2, cellZ],
+            args: [wallThickness, wallHeight, 1],
+            color: getRandomCyberpunkColor(),
+            key: `west-${x}-${y}`
+          });
         }
+
+        // 地面
+        floors.push({
+          position: [cellX, 0, cellZ],
+          key: `floor-${x}-${y}`
+        });
       }
     }
 
-    return walls;
+    return { maze, walls, floors };
+  }, [size]);
+
+  // 更新遊戲時間
+  useFrame(() => {
+    if (isPlaying) {
+      updateGameTime();
+    }
+  });
+
+  // 渲染牆壁
+  const renderWalls = () => {
+    return walls.map(wall => (
+      <Box
+        key={wall.key}
+        position={wall.position}
+        args={wall.args}
+      >
+        <meshStandardMaterial color={wall.color} />
+      </Box>
+    ));
   };
 
   // 渲染地面
   const renderFloor = () => {
-    const floors: React.ReactNode[] = [];
-    
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const cellX = x - size / 2;
-        const cellZ = y - size / 2;
-        
-        floors.push(
-          <Box
-            key={`floor-${x}-${y}`}
-            position={[cellX, 0, cellZ]}
-            args={[1, 0.1, 1]}
-          >
-            <meshStandardMaterial color="#1a1a1a" />
-          </Box>
-        );
-      }
-    }
-    
-    return floors;
+    return floors.map(floor => (
+      <Box
+        key={floor.key}
+        position={floor.position}
+        args={[1, 0.1, 1]}
+      >
+        <meshStandardMaterial color="#1a1a1a" />
+      </Box>
+    ));
   };
 
   // 渲染終點獎盃

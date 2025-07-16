@@ -5,7 +5,7 @@ import { useGameStore } from '../store/gameStore';
 import * as THREE from 'three';
 
 export const Player: React.FC = () => {
-  const { isPlaying, endGame } = useGameStore();
+  const { isPlaying, endGame, mazeSize } = useGameStore();
   const { camera } = useThree();
   const controlsRef = useRef<any>(null);
   const [keys, setKeys] = useState<Set<string>>(new Set());
@@ -14,12 +14,13 @@ export const Player: React.FC = () => {
   const moveSpeed = 0.1;
   
   // 玩家位置（從迷宮左上角開始）
-  const playerPosition = useRef(new THREE.Vector3(-1, 1, -1));
+  const playerPosition = useRef(new THREE.Vector3(-mazeSize / 2 + 0.5, 1, -mazeSize / 2 + 0.5));
   
-  // 設置初始位置
+  // 當迷宮大小改變時重置玩家位置
   useEffect(() => {
+    playerPosition.current.set(-mazeSize / 2 + 0.5, 1, -mazeSize / 2 + 0.5);
     camera.position.copy(playerPosition.current);
-  }, [camera]);
+  }, [mazeSize, camera]);
 
   // 處理鍵盤輸入
   useEffect(() => {
@@ -78,12 +79,11 @@ export const Player: React.FC = () => {
     playerPosition.current.x += moveX;
     playerPosition.current.z += moveZ;
     
-    // 簡單的邊界檢查（防止走出迷宮）
-    const mazeSize = 3;
+    // 邊界檢查（防止走出迷宮）
     const halfSize = mazeSize / 2;
     
-    playerPosition.current.x = Math.max(-halfSize, Math.min(halfSize - 0.5, playerPosition.current.x));
-    playerPosition.current.z = Math.max(-halfSize, Math.min(halfSize - 0.5, playerPosition.current.z));
+    playerPosition.current.x = Math.max(-halfSize + 0.5, Math.min(halfSize - 0.5, playerPosition.current.x));
+    playerPosition.current.z = Math.max(-halfSize + 0.5, Math.min(halfSize - 0.5, playerPosition.current.z));
     
     // 更新相機位置
     camera.position.copy(playerPosition.current);
@@ -95,9 +95,19 @@ export const Player: React.FC = () => {
     
     if (distanceToTrophy < 0.5) {
       endGame();
-      alert('恭喜通關！');
+      alert(`恭喜通關！\n完成時間: ${formatTime(useGameStore.getState().gameTime)}\n迷宮大小: ${mazeSize}×${mazeSize}`);
     }
   });
+
+  // 格式化時間顯示
+  const formatTime = (milliseconds: number): string => {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const ms = Math.floor((milliseconds % 1000) / 10);
+    
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}:${ms.toString().padStart(2, '0')}`;
+  };
 
   return (
     <PointerLockControls

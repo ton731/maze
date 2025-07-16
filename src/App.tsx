@@ -13,7 +13,7 @@ function App() {
     <div className="App" style={{ width: '100vw', height: '100vh', position: 'relative' }}>
       <Canvas
         camera={{ 
-          position: [-1, 1, -1], 
+          position: [-mazeSize / 2 + 0.5, 1, -mazeSize / 2 + 0.5], 
           fov: 75,
           near: 0.1,
           far: 1000
